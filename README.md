@@ -1,11 +1,13 @@
 <div align="center">
 
-# ☁️ Antigravity Anywhere & Cloud Sync Hub
+<img src="resources/antigravity_cloud_logo.png" alt="Antigravity Cloud Logo" width="240" style="border-radius: 24px; margin-bottom: 16px; box-shadow: 0 10px 30px rgba(139, 92, 246, 0.3);" />
 
-**Multi-Device Synchronization, Zero-Knowledge Encryption & Google Drive Backup Engine for Antigravity AI**
+# ☁️ Antigravity Cloud
+
+**Multi-Device State Manager & Zero-Knowledge Sync Engine for Antigravity AI**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Antigravity IDE](https://img.shields.io/badge/Antigravity-Extension-blue.svg)](https://marketplace.visualstudio.com)
+[![Antigravity IDE](https://img.shields.io/badge/Antigravity-Extension-blue.svg)](https://github.com/sircamsircam/antigravity-cloud)
 [![Google OAuth 2.0](https://img.shields.io/badge/Google-Drive%20OAuth%202.0-4285F4.svg)](https://developers.google.com)
 
 *Seamlessly backup, sync, and access your local Antigravity AI conversations, transcripts, and AI artifacts across Mac, Windows, and Linux.*
@@ -107,6 +109,8 @@ Uses an automated **OAuth 2.0 PKCE** flow via local callback server (`127.0.0.1:
 ---
 
 ## 🛠️ 5. Dashboard Features
+
+![Antigravity Cloud Dashboard Preview](resources/dashboard_preview.png)
 
 - **Master Select All Checkbox:** Select/deselect all visible items with indeterminate checkbox state support (`Select All` / `Deselect All` / `X Selected`).
 - **Live Search Filter:** Instant filtering by chat title or session ID.
