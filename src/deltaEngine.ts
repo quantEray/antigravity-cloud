@@ -498,34 +498,69 @@ export class DeltaEngine {
     const appSupportDir = this.getAppSupportDir();
     let restoredCount = 0;
 
+    const targetBases = [
+      antigravityDataDir,
+      path.join(parentDir, 'antigravity'),
+      path.join(parentDir, 'antigravity-ide'),
+    ];
+
     for (const item of bundle.files) {
-      let baseTarget = antigravityDataDir;
       let relPath = item.relativePath;
 
       if (item.relativePath.startsWith('config/')) {
-        baseTarget = parentDir;
-      } else if (item.relativePath.startsWith('app_support/')) {
-        baseTarget = appSupportDir;
-        relPath = item.relativePath.substring(12); // Remove 'app_support/'
+        const targetPath = path.join(parentDir, relPath.replace(/\//g, path.sep));
+        try {
+          await fs.promises.mkdir(path.dirname(targetPath), { recursive: true });
+          if (item.content.startsWith('base64:')) {
+            await fs.promises.writeFile(targetPath, Buffer.from(item.content.substring(7), 'base64'));
+          } else {
+            await fs.promises.writeFile(targetPath, PathNormalizer.denormalize(item.content), 'utf-8');
+          }
+        } catch {}
+        restoredCount++;
+        continue;
       }
 
-      // Normalize slashes for target operating system (Windows vs Mac)
+      if (item.relativePath.startsWith('app_support/')) {
+        relPath = item.relativePath.substring(12);
+        const targetPath = path.join(appSupportDir, relPath.replace(/\//g, path.sep));
+        try {
+          await fs.promises.mkdir(path.dirname(targetPath), { recursive: true });
+          if (item.content.startsWith('base64:')) {
+            await fs.promises.writeFile(targetPath, Buffer.from(item.content.substring(7), 'base64'));
+          } else {
+            await fs.promises.writeFile(targetPath, PathNormalizer.denormalize(item.content), 'utf-8');
+          }
+        } catch {}
+        restoredCount++;
+        continue;
+      }
+
+      // For conversation, brain, implicit files: Write to ALL candidate base directories
       const normalizedRelPath = relPath.replace(/\//g, path.sep);
-      const targetPath = path.join(baseTarget, normalizedRelPath);
-      const targetDir = path.dirname(targetPath);
 
-      await fs.promises.mkdir(targetDir, { recursive: true });
+      for (const baseDir of targetBases) {
+        const targetPath = path.join(baseDir, normalizedRelPath);
+        const targetDir = path.dirname(targetPath);
 
-      if (item.content.startsWith('base64:')) {
-        const buffer = Buffer.from(item.content.substring(7), 'base64');
-        await fs.promises.writeFile(targetPath, buffer);
-      } else {
-        const denormalizedContent = PathNormalizer.denormalize(item.content);
-        await fs.promises.writeFile(targetPath, denormalizedContent, 'utf-8');
+        try {
+          await fs.promises.mkdir(targetDir, { recursive: true });
+
+          if (item.content.startsWith('base64:')) {
+            const buffer = Buffer.from(item.content.substring(7), 'base64');
+            await fs.promises.writeFile(targetPath, buffer);
+          } else {
+            const denormalizedContent = PathNormalizer.denormalize(item.content);
+            await fs.promises.writeFile(targetPath, denormalizedContent, 'utf-8');
+          }
+        } catch {}
       }
 
       restoredCount++;
     }
+
+    // Save restored delta state cache so all files show up as Synced
+    await this.saveDeltaState(antigravityDataDir, bundle.files);
 
     return restoredCount;
   }
