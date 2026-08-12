@@ -1,0 +1,173 @@
+{
+  "name": "antigravity-anywhere",
+  "displayName": "Antigravity Anywhere",
+  "description": "Real-time, zero-knowledge encrypted cross-device sync & cloud backup engine for Antigravity AI chat transcripts and artifacts.",
+  "version": "0.1.0",
+  "publisher": "sircamsircam",
+  "author": {
+    "name": "Eray Eser",
+    "email": "erayeser06@gmail.com",
+    "url": "https://github.com/sircamsircam"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sircamsircam/antigravity-cloud"
+  },
+  "bugs": {
+    "url": "https://github.com/sircamsircam/antigravity-cloud/issues",
+    "email": "erayeser06@gmail.com"
+  },
+  "homepage": "https://github.com/sircamsircam/antigravity-cloud#readme",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other",
+    "Data Science",
+    "Machine Learning"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "antigravityAnywhereActivityBar",
+          "title": "Antigravity Anywhere",
+          "icon": "resources/cloud-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "antigravityAnywhereActivityBar": [
+        {
+          "type": "webview",
+          "id": "antigravityAnywhereSidebarView",
+          "name": "Cloud Sync Dashboard"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "antigravityAnywhere.googleLogin",
+        "title": "Antigravity Cloud: Sign in with Google",
+        "icon": "$(account)"
+      },
+      {
+        "command": "antigravityAnywhere.openDashboard",
+        "title": "Antigravity Anywhere: Open Cloud Dashboard",
+        "icon": "$(dashboard)"
+      },
+      {
+        "command": "antigravityAnywhere.syncNow",
+        "title": "Antigravity Anywhere: Sync Now",
+        "icon": "$(cloud-upload)"
+      },
+      {
+        "command": "antigravityAnywhere.restore",
+        "title": "Antigravity Anywhere: Restore from Cloud",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "antigravityAnywhere.googleLogout",
+        "title": "Antigravity Cloud: Sign Out",
+        "icon": "$(sign-out)"
+      },
+      {
+        "command": "antigravityAnywhere.deepScan",
+        "title": "Antigravity Anywhere: Deep Scan & Re-Index",
+        "icon": "$(search)"
+      },
+      {
+        "command": "antigravityAnywhere.deleteConversation",
+        "title": "Antigravity Anywhere: Delete Conversation",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "antigravityAnywhere.deleteBatchConversations",
+        "title": "Antigravity Anywhere: Delete Selected Conversations",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "antigravityAnywhere.deleteFile",
+        "title": "Antigravity Anywhere: Delete File",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "antigravityAnywhere.deleteAllFiles",
+        "title": "Antigravity Anywhere: Delete All Local Conversation Files",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "antigravityAnywhere.toggleAutoSync",
+        "title": "Antigravity Cloud: Toggle Automatic Sync ON/OFF",
+        "icon": "$(sync)"
+      }
+    ],
+    "configuration": {
+      "title": "Antigravity Anywhere",
+      "properties": {
+        "antigravityAnywhere.googleDriveToken": {
+          "type": "string",
+          "default": "",
+          "description": "Google Drive Access Token (OAuth token with https://www.googleapis.com/auth/drive.file scope) for unlimited cloud sync."
+        },
+        "antigravityAnywhere.googleRefreshToken": {
+          "type": "string",
+          "default": "",
+          "description": "Google Drive Refresh Token for maintaining long-term OAuth session."
+        },
+        "antigravityAnywhere.driveFileId": {
+          "type": "string",
+          "default": "",
+          "description": "Google Drive backup file ID used for syncing chat backups."
+        },
+        "antigravityAnywhere.googleUserEmail": {
+          "type": "string",
+          "default": "",
+          "description": "Signed in Google user email address."
+        },
+        "antigravityAnywhere.googleUserName": {
+          "type": "string",
+          "default": "",
+          "description": "Signed in Google user display name."
+        },
+        "antigravityAnywhere.googleUserPicture": {
+          "type": "string",
+          "default": "",
+          "description": "Signed in Google user profile picture URL."
+        },
+        "antigravityAnywhere.encryptionPassword": {
+          "type": "string",
+          "default": "",
+          "description": "Secret password for zero-knowledge AES-256-GCM encryption."
+        },
+        "antigravityAnywhere.enableAutoSync": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable real-time background sync when chat transcript files are updated."
+        },
+        "antigravityAnywhere.syncIntervalSeconds": {
+          "type": "number",
+          "default": 10,
+          "description": "Debounce interval in seconds before pushing changes."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run build",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "build": "node esbuild.js",
+    "test": "node dist/test.js"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/vscode": "^1.85.0",
+    "esbuild": "^0.20.0",
+    "typescript": "^5.3.0"
+  }
+}
