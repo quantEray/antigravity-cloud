@@ -121,14 +121,36 @@ export class GoogleDriveStorage {
     );
   }
 
+  public static async cleanupDuplicates(storage: GoogleDriveStorage): Promise<void> {
+    try {
+      await storage.findBackupFileId();
+    } catch {}
+  }
+
   public async findBackupFileId(): Promise<string | null> {
     const query = encodeURIComponent("name='antigravity_cloud_backup.enc' and trashed=false");
-    const res = await this.request<{ files: Array<{ id: string }> }>(
+    const res = await this.request<{ files: Array<{ id: string; modifiedTime?: string }> }>(
       'GET',
-      `/drive/v3/files?q=${query}&fields=files(id)`
+      `/drive/v3/files?q=${query}&fields=files(id,modifiedTime)`
     );
 
     if (res.files && res.files.length > 0) {
+      if (res.files.length > 1) {
+        // Automatically clean up duplicate legacy backup files, keeping the newest one
+        const sorted = [...res.files].sort((a, b) => {
+          const tA = a.modifiedTime ? new Date(a.modifiedTime).getTime() : 0;
+          const tB = b.modifiedTime ? new Date(b.modifiedTime).getTime() : 0;
+          return tB - tA;
+        });
+
+        const activeFileId = sorted[0].id;
+        for (let i = 1; i < sorted.length; i++) {
+          try {
+            await this.request('DELETE', `/drive/v3/files/${sorted[i].id}`);
+          } catch {}
+        }
+        return activeFileId;
+      }
       return res.files[0].id;
     }
     return null;

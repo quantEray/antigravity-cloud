@@ -9,7 +9,6 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Antigravity IDE](https://img.shields.io/badge/Antigravity-Extension-blue.svg)](https://github.com/quantEray/antigravity-cloud)
 [![Google OAuth 2.0](https://img.shields.io/badge/Google-Drive%20OAuth%202.0-4285F4.svg)](https://developers.google.com)
-[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-Donate-FFDD00.svg?logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/quantEray)
 
 *Seamlessly backup, sync, and access your local Antigravity AI conversations, transcripts, and AI artifacts across Mac, Windows, and Linux.*
 
@@ -141,14 +140,13 @@ Uses an automated **OAuth 2.0 PKCE** flow via local callback server (`127.0.0.1:
 
 ---
 
-## 👨‍💻 Author & Support
+## 👨‍💻 Author & Contact
 
 Developed with ❤️ by **Eray Eser** (`quantEray`)
 
 - 📧 **Email:** [erayeser06@gmail.com](mailto:erayeser06@gmail.com)
 - 🐙 **GitHub Profile:** [github.com/quantEray](https://github.com/quantEray)
 - 🚀 **GitHub Repository:** [github.com/quantEray/antigravity-cloud](https://github.com/quantEray/antigravity-cloud)
-- ☕ **Support the Project:** [![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-Donate-FFDD00.svg?logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/quantEray)
 
 ---
 

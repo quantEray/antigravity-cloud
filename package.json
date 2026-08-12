@@ -4,6 +4,7 @@
   "description": "Real-time, zero-knowledge encrypted cross-device sync & cloud backup engine for Antigravity AI chat transcripts and artifacts.",
   "version": "0.1.0",
   "publisher": "quantEray",
+  "icon": "resources/antigravity_cloud_logo.png",
   "author": {
     "name": "Eray Eser",
     "email": "erayeser06@gmail.com",
