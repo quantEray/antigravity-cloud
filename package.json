@@ -3,21 +3,21 @@
   "displayName": "Antigravity Anywhere",
   "description": "Real-time, zero-knowledge encrypted cross-device sync & cloud backup engine for Antigravity AI chat transcripts and artifacts.",
   "version": "0.1.0",
-  "publisher": "sircamsircam",
+  "publisher": "quantEray",
   "author": {
     "name": "Eray Eser",
     "email": "erayeser06@gmail.com",
-    "url": "https://github.com/sircamsircam"
+    "url": "https://github.com/quantEray"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/sircamsircam/antigravity-cloud"
+    "url": "https://github.com/quantEray/antigravity-cloud"
   },
   "bugs": {
-    "url": "https://github.com/sircamsircam/antigravity-cloud/issues",
+    "url": "https://github.com/quantEray/antigravity-cloud/issues",
     "email": "erayeser06@gmail.com"
   },
-  "homepage": "https://github.com/sircamsircam/antigravity-cloud#readme",
+  "homepage": "https://github.com/quantEray/antigravity-cloud#readme",
   "engines": {
     "vscode": "^1.85.0"
   },

@@ -7,12 +7,27 @@
 **Multi-Device State Manager & Zero-Knowledge Sync Engine for Antigravity AI**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Antigravity IDE](https://img.shields.io/badge/Antigravity-Extension-blue.svg)](https://github.com/sircamsircam/antigravity-cloud)
+[![Antigravity IDE](https://img.shields.io/badge/Antigravity-Extension-blue.svg)](https://github.com/quantEray/antigravity-cloud)
 [![Google OAuth 2.0](https://img.shields.io/badge/Google-Drive%20OAuth%202.0-4285F4.svg)](https://developers.google.com)
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-Donate-FFDD00.svg?logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/quantEray)
 
 *Seamlessly backup, sync, and access your local Antigravity AI conversations, transcripts, and AI artifacts across Mac, Windows, and Linux.*
 
 </div>
+
+---
+
+## 💡 About Antigravity Cloud
+
+**Antigravity Cloud** was engineered to solve a fundamental workflow pain point for developers using Next-Gen AI IDEs: **seamless, privacy-first, cross-device state management.**
+
+Whether switching between your desktop workstation, Mac laptop, or Linux dev server, Antigravity Cloud keeps your AI conversation history (`brain/`), trajectory memory, SQLite database indexes (`conversations/`), and workspace artifacts synchronized in real time using your personal Google Drive account as a zero-knowledge cloud backend.
+
+### Key Highlights:
+- 🔒 **Zero-Knowledge Security:** E2E local PBKDF2 + AES-256-GCM authenticated encryption. Your data is encrypted before leaving your machine.
+- 🔑 **Pure 1-Click OAuth 2.0 PKCE:** Automated local loopback authorization server. No manual API token copying or OAuth playground needed.
+- ⚡ **Resumable Chunk Streaming:** Unlimited payload size support with live chunk-by-chunk megabyte progress bars.
+- 🖥️ **Cross-OS Compatibility:** Normalizes absolute paths across macOS, Windows, and Linux.
 
 ---
 
@@ -126,13 +141,14 @@ Uses an automated **OAuth 2.0 PKCE** flow via local callback server (`127.0.0.1:
 
 ---
 
-## 👨‍💻 Author & Contact
+## 👨‍💻 Author & Support
 
-Developed with ❤️ by **Eray Eser**
+Developed with ❤️ by **Eray Eser** (`quantEray`)
 
 - 📧 **Email:** [erayeser06@gmail.com](mailto:erayeser06@gmail.com)
-- 🐙 **GitHub Profile:** [github.com/sircamsircam](https://github.com/sircamsircam)
-- 🚀 **GitHub Repository:** [github.com/sircamsircam/antigravity-cloud](https://github.com/sircamsircam/antigravity-cloud)
+- 🐙 **GitHub Profile:** [github.com/quantEray](https://github.com/quantEray)
+- 🚀 **GitHub Repository:** [github.com/quantEray/antigravity-cloud](https://github.com/quantEray/antigravity-cloud)
+- ☕ **Support the Project:** [![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-Donate-FFDD00.svg?logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/quantEray)
 
 ---
 
