@@ -62,6 +62,11 @@
         "icon": "$(dashboard)"
       },
       {
+        "command": "antigravityAnywhere.checkForUpdates",
+        "title": "Antigravity Cloud: Check for Updates",
+        "icon": "$(sync)"
+      },
+      {
         "command": "antigravityAnywhere.syncNow",
         "title": "Antigravity Anywhere: Sync Now",
         "icon": "$(cloud-upload)"

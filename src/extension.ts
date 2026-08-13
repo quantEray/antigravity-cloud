@@ -11,6 +11,7 @@ import { FileWatcher } from './watcher';
 
 import { DashboardWebview } from './dashboardWebview';
 import { SidebarViewProvider } from './sidebarViewProvider';
+import { AutoUpdater } from './autoUpdater';
 
 let statusBarItem: vscode.StatusBarItem;
 let fileWatcher: FileWatcher | null = null;
@@ -18,6 +19,9 @@ let lastManifestHash: string = '';
 let activeSyncAbortController: AbortController | null = null;
 
 export function activate(context: vscode.ExtensionContext) {
+  // Check for extension updates automatically from GitHub
+  AutoUpdater.checkForUpdates(context).catch(() => {});
+
   // Create status bar item
   statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
   statusBarItem.command = 'antigravityAnywhere.openDashboard';
@@ -60,6 +64,9 @@ export function activate(context: vscode.ExtensionContext) {
       }
     }),
     vscode.commands.registerCommand('antigravityAnywhere.openDashboard', () => DashboardWebview.show(context)),
+    vscode.commands.registerCommand('antigravityAnywhere.checkForUpdates', async () => {
+      await AutoUpdater.checkForUpdates(context, true);
+    }),
     vscode.commands.registerCommand('antigravityAnywhere.cancelSync', () => {
       if (activeSyncAbortController) {
         activeSyncAbortController.abort();
