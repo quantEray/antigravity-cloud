@@ -62,6 +62,12 @@ export class DashboardWebview {
             await vscode.commands.executeCommand('antigravityAnywhere.toggleAutoSync');
             this.updateWebviewHtml(panel);
             break;
+          case 'openGithubStar':
+            vscode.env.openExternal(vscode.Uri.parse('https://github.com/quantEray/antigravity-cloud'));
+            break;
+          case 'openGithubIssues':
+            vscode.env.openExternal(vscode.Uri.parse('https://github.com/quantEray/antigravity-cloud/issues'));
+            break;
           case 'deleteAll':
             await vscode.commands.executeCommand('antigravityAnywhere.deleteAllFiles', true);
             this.updateWebviewHtml(panel);
@@ -839,17 +845,28 @@ export class DashboardWebview {
       <p>Multi-Device State Manager & Real-Time Sync Engine (Google Drive Backend)</p>
     </div>
     
-    <div class="user-profile-badge">
-      ${
-        isLoggedIn
-          ? `${avatarHtml}
-             <div>
-               <div class="user-meta-name">${userName}</div>
-               <div class="user-meta-email">${userEmail}</div>
-               <div class="status-badge"><span class="pulse-dot"></span> Google Drive Connected</div>
-             </div>`
-          : `<div class="status-badge"><span class="pulse-dot"></span> Not Logged In</div>`
-      }
+    <div style="display: flex; align-items: center; gap: 16px;">
+      <div style="display: flex; gap: 8px;">
+        <button class="btn btn-secondary" onclick="sendMessage('openGithubStar')" style="padding: 8px 14px; font-size: 12px; border-color: rgba(251, 191, 36, 0.4); color: #fde047;" title="Star project on GitHub">
+          ⭐ Star Project
+        </button>
+        <button class="btn btn-secondary" onclick="sendMessage('openGithubIssues')" style="padding: 8px 14px; font-size: 12px; border-color: rgba(168, 85, 247, 0.4); color: #c084fc;" title="Feedback & Issue Tracker">
+          💬 Feedback
+        </button>
+      </div>
+
+      <div class="user-profile-badge">
+        ${
+          isLoggedIn
+            ? `${avatarHtml}
+               <div>
+                 <div class="user-meta-name">${userName}</div>
+                 <div class="user-meta-email">${userEmail}</div>
+                 <div class="status-badge"><span class="pulse-dot"></span> Google Drive Connected</div>
+               </div>`
+            : `<div class="status-badge"><span class="pulse-dot"></span> Not Logged In</div>`
+        }
+      </div>
     </div>
   </div>
 

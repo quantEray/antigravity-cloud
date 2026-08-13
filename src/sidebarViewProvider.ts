@@ -68,6 +68,12 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider {
           await vscode.commands.executeCommand('antigravityAnywhere.toggleAutoSync');
           this.refresh();
           break;
+        case 'openGithubStar':
+          vscode.env.openExternal(vscode.Uri.parse('https://github.com/quantEray/antigravity-cloud'));
+          break;
+        case 'openGithubIssues':
+          vscode.env.openExternal(vscode.Uri.parse('https://github.com/quantEray/antigravity-cloud/issues'));
+          break;
         case 'refresh':
           this.refresh();
           break;
@@ -454,6 +460,10 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider {
     <button onclick="send('syncNow')">⚡ Sync All (Google Drive)</button>
     <button class="secondary" onclick="send('restore')">📥 Restore from Google Drive</button>
     <button class="secondary" onclick="send('refresh')">🔄 Refresh UI</button>
+    <div style="display: flex; gap: 6px; width: 100%;">
+      <button class="secondary" onclick="send('openGithubStar')" style="flex: 1; font-size: 11px; padding: 6px;" title="Star on GitHub">⭐ Star Project</button>
+      <button class="secondary" onclick="send('openGithubIssues')" style="flex: 1; font-size: 11px; padding: 6px;" title="Report Feedback">💬 Feedback</button>
+    </div>
     <button class="danger" onclick="send('deleteAll')">🗑️ Delete All Files</button>
   </div>
 
