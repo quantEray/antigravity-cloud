@@ -68,6 +68,10 @@ export class DashboardWebview {
           case 'openGithubIssues':
             vscode.env.openExternal(vscode.Uri.parse('https://github.com/quantEray/antigravity-cloud/issues'));
             break;
+          case 'setEncryptionPassword':
+            await vscode.commands.executeCommand('antigravityAnywhere.setEncryptionPassword');
+            this.updateWebviewHtml(panel);
+            break;
           case 'deleteAll':
             await vscode.commands.executeCommand('antigravityAnywhere.deleteAllFiles', true);
             this.updateWebviewHtml(panel);

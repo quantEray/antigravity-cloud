@@ -74,6 +74,10 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider {
         case 'openGithubIssues':
           vscode.env.openExternal(vscode.Uri.parse('https://github.com/quantEray/antigravity-cloud/issues'));
           break;
+        case 'setEncryptionPassword':
+          await vscode.commands.executeCommand('antigravityAnywhere.setEncryptionPassword');
+          this.refresh();
+          break;
         case 'refresh':
           this.refresh();
           break;

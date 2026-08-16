@@ -73,3 +73,8 @@ export async function clearGoogleAuth(): Promise<void> {
   await config.update('googleUserPicture', '', vscode.ConfigurationTarget.Global);
   await config.update('driveFileId', '', vscode.ConfigurationTarget.Global);
 }
+
+export async function setEncryptionPassword(password: string): Promise<void> {
+  const config = vscode.workspace.getConfiguration('antigravityAnywhere');
+  await config.update('encryptionPassword', password, vscode.ConfigurationTarget.Global);
+}

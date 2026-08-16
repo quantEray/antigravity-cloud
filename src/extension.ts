@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import { getConfig, setDriveFileId, clearGoogleAuth, setAutoSync } from './config';
+import { getConfig, setDriveFileId, clearGoogleAuth, setAutoSync, setEncryptionPassword } from './config';
 import { DeltaEngine } from './deltaEngine';
 import { encryptPayload, decryptPayload } from './crypto';
 import { GoogleDriveStorage } from './storage/googleDriveStorage';
@@ -110,6 +110,26 @@ export function activate(context: vscode.ExtensionContext) {
       await performRestore();
       sidebarProvider.refresh();
       DashboardWebview.refreshCurrentPanel();
+    }),
+    vscode.commands.registerCommand('antigravityAnywhere.setEncryptionPassword', async () => {
+      const cfg = getConfig();
+      const inputPass = await vscode.window.showInputBox({
+        prompt: '🔑 Set Encryption Password for Antigravity Cloud backups (leave blank for default mode):',
+        password: true,
+        value: cfg.encryptionPassword,
+        placeHolder: 'Enter custom encryption password...',
+      });
+
+      if (inputPass !== undefined) {
+        await setEncryptionPassword(inputPass.trim());
+        if (inputPass.trim()) {
+          vscode.window.showInformationMessage('🔑 Antigravity Cloud: Custom encryption password saved!');
+        } else {
+          vscode.window.showInformationMessage('🔓 Antigravity Cloud: Encryption password cleared.');
+        }
+        sidebarProvider.refresh();
+        DashboardWebview.refreshCurrentPanel();
+      }
     }),
     vscode.commands.registerCommand('antigravityAnywhere.googleLogout', async () => {
       await GoogleAuthManager.logout();
@@ -520,7 +540,45 @@ async function performRestore(): Promise<void> {
         const encryptedPayload = await storage.downloadSyncPayload(fileId);
 
         broadcastProgress(true, 70, '🔓 Decrypting payload & uncompressing files...', '📥 Restoring from Google Drive...');
-        const decryptedJson = decryptPayload(encryptedPayload, config.encryptionPassword);
+        let decryptedJson: string | null = null;
+        let currentPassword = config.encryptionPassword;
+
+        // Try decrypting with stored password first
+        try {
+          decryptedJson = decryptPayload(encryptedPayload, currentPassword);
+        } catch {
+          decryptedJson = null;
+        }
+
+        // If decryption failed or password was missing/wrong, prompt user interactively!
+        if (!decryptedJson) {
+          let promptMessage = currentPassword
+            ? '❌ Saved encryption password is incorrect. Please enter the valid Encryption Password:'
+            : '🔑 This cloud backup is encrypted with a password. Please enter the Encryption Password:';
+
+          while (!decryptedJson) {
+            const inputPassword = await vscode.window.showInputBox({
+              prompt: promptMessage,
+              password: true,
+              ignoreFocusOut: true,
+              placeHolder: 'Enter your encryption password...',
+            });
+
+            if (inputPassword === undefined) {
+              throw new Error('Restore canceled: Valid encryption password is required to decrypt cloud backup.');
+            }
+
+            try {
+              decryptedJson = decryptPayload(encryptedPayload, inputPassword.trim());
+              // Successfully decrypted! Save password globally so user doesn't have to enter it again.
+              await setEncryptionPassword(inputPassword.trim());
+              vscode.window.showInformationMessage('🔑 Antigravity Cloud: Valid encryption password saved!');
+            } catch {
+              promptMessage = '❌ Incorrect password. Please try again (or press Esc to cancel):';
+            }
+          }
+        }
+
         const bundle = JSON.parse(decryptedJson);
 
         broadcastProgress(true, 85, `📁 Restoring ${bundle.files?.length || 0} transcript files and databases to disk...`, '📥 Restoring from Google Drive...');
