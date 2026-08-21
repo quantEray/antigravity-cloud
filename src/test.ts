@@ -1,8 +1,9 @@
 import * as os from 'os';
 import * as path from 'path';
+import * as zlib from 'zlib';
 import { encryptPayload, decryptPayload } from './crypto';
 import { PathNormalizer } from './pathNormalizer';
-import { DeltaEngine } from './deltaEngine';
+import { DeltaEngine, FileItem } from './deltaEngine';
 
 async function runTests() {
   console.log('Running Antigravity Anywhere Core Tests...');
@@ -19,15 +20,48 @@ async function runTests() {
   }
   console.log('✓ Crypto AES-256-GCM + Gzip Test Passed.');
 
-  // Test 2: Path Normalization
-  const userHome = PathNormalizer.denormalize('${USER_HOME}');
-  const normalized = PathNormalizer.normalize(`${userHome}/Desktop/TestProject`);
-  if (!normalized.startsWith('${USER_HOME}')) {
-    throw new Error('Path Normalizer Test Failed: Did not replace user home.');
-  }
-  console.log('✓ Path Normalizer Test Passed.');
+  // Test 2: Path Normalization in JSON & text
+  const userHome = PathNormalizer.getNormalizedHome();
+  const sampleJson = JSON.stringify({
+    fileUri: `file://${userHome}/Desktop/MyProject/main.ts`,
+    localPath: `${userHome}/documents/code.ts`,
+    other: 'some value'
+  });
 
-  // Test 3: Local Data Directory Scan Test
+  const normalizedJson = PathNormalizer.normalize(sampleJson);
+  if (normalizedJson.includes(userHome)) {
+    throw new Error('Path Normalizer Test Failed: Did not replace embedded user home.');
+  }
+  if (!normalizedJson.includes('${USER_HOME}')) {
+    throw new Error('Path Normalizer Test Failed: Missing ${USER_HOME} placeholder.');
+  }
+
+  const denormalizedJson = PathNormalizer.denormalize(normalizedJson);
+  if (denormalizedJson !== sampleJson) {
+    throw new Error('Path Normalizer Test Failed: Denormalized text does not match sample.');
+  }
+  console.log('✓ Deep Path Normalizer & Denormalizer Test Passed.');
+
+  // Test 3: GZ64 Inflate & Denormalize Test
+  const testText = JSON.stringify({ path: `${userHome}/test/file.json` });
+  const normalizedTestText = PathNormalizer.normalize(testText);
+  const deflated = zlib.deflateSync(Buffer.from(normalizedTestText, 'utf-8'));
+  const testFileItem: FileItem = {
+    relativePath: 'brain/test-conv/test.json',
+    content: 'gz64:' + deflated.toString('base64'),
+    hash: 'test-hash',
+    sizeBytes: 100,
+    mtimeMs: Date.now()
+  };
+
+  const restoredBuf = DeltaEngine.getFileContentBuffer(testFileItem);
+  const restoredText = restoredBuf.toString('utf-8');
+  if (restoredText !== testText) {
+    throw new Error(`GZ64 Denormalize Test Failed. Expected: ${testText}, Got: ${restoredText}`);
+  }
+  console.log('✓ GZ64 Inflate + Denormalize Integration Test Passed.');
+
+  // Test 4: Local Data Directory Scan Test
   const antigravityDataDir = path.join(os.homedir(), '.gemini', 'antigravity-ide');
   const bundle = await DeltaEngine.scanDataDirectory(antigravityDataDir);
   const groups = DeltaEngine.groupFilesByConversation(bundle);

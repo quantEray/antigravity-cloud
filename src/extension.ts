@@ -282,7 +282,6 @@ export function activate(context: vscode.ExtensionContext) {
           path.join(parentDir, 'antigravity-ide', 'brain'),
           path.join(parentDir, 'antigravity-ide', 'conversations'),
           path.join(parentDir, 'antigravity-ide', 'implicit'),
-          path.join(appSupportDir, 'shared_proto_db'),
         ];
 
         for (const dir of dirsToWipe) {

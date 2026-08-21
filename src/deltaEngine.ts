@@ -6,7 +6,7 @@ import * as zlib from 'zlib';
 import { PathNormalizer } from './pathNormalizer';
 
 export interface FileItem {
-  relativePath: string; // e.g. conversations/conv-id.db or app_support/shared_proto_db/...
+  relativePath: string; // e.g. conversations/conv-id.db or brain/conv-id/...
   content: string;
   hash: string;
   sizeBytes: number;
@@ -51,11 +51,22 @@ export class DeltaEngine {
     }
   }
 
+  public static isBinaryFile(filePath: string): boolean {
+    const ext = path.extname(filePath).toLowerCase();
+    return ['.db', '.db-wal', '.db-shm', '.pb'].includes(ext);
+  }
+
   public static getFileContentBuffer(file: FileItem): Buffer {
     try {
       if (file.content.startsWith('gz64:')) {
         const compressed = Buffer.from(file.content.substring(5), 'base64');
-        return zlib.inflateSync(compressed);
+        const inflated = zlib.inflateSync(compressed);
+
+        if (!this.isBinaryFile(file.relativePath)) {
+          const denormalized = PathNormalizer.denormalize(inflated.toString('utf-8'));
+          return Buffer.from(denormalized, 'utf-8');
+        }
+        return inflated;
       } else if (file.content.startsWith('base64:')) {
         return Buffer.from(file.content.substring(7), 'base64');
       } else {
@@ -71,11 +82,13 @@ export class DeltaEngine {
     try {
       if (file.content.startsWith('gz64:')) {
         const compressed = Buffer.from(file.content.substring(5), 'base64');
-        return zlib.inflateSync(compressed).toString('utf-8');
+        const inflated = zlib.inflateSync(compressed);
+        const text = inflated.toString('utf-8');
+        return PathNormalizer.denormalize(text);
       } else if (file.content.startsWith('base64:')) {
         return Buffer.from(file.content.substring(7), 'base64').toString('utf-8');
       }
-      return file.content;
+      return PathNormalizer.denormalize(file.content);
     } catch {
       return '';
     }
@@ -160,7 +173,7 @@ export class DeltaEngine {
    * SYNC mode with INCREMENTAL DELTA OPTIMIZATION:
    * Compares file mtimeMs and sizeBytes against delta_sync_state.json cache.
    * If a conversation has NO changed files, its static history is skipped from heavy re-uploading.
-   * Only NEW/MODIFIED conversations + system indexes (shared_proto_db, state.vscdb) are packaged!
+   * Only NEW/MODIFIED conversations + config files are packaged!
    */
   public static async scanForSync(antigravityDataDir: string, forceFull: boolean = false): Promise<SyncBundle> {
     const parentDir = path.dirname(antigravityDataDir); // ~/.gemini
@@ -195,36 +208,6 @@ export class DeltaEngine {
       await this.scanDirRecursive(configDir, parentDir, allScannedFiles, false);
     }
 
-    // 3. Scan shared_proto_db & state.vscdb index from Application Support
-    const appSupportDir = this.getAppSupportDir();
-    if (fs.existsSync(appSupportDir)) {
-      const protoDbDir = path.join(appSupportDir, 'shared_proto_db');
-      if (fs.existsSync(protoDbDir)) {
-        await this.scanDirRecursive(protoDbDir, appSupportDir, allScannedFiles, false, 'app_support');
-      }
-
-      const globalStateDb = path.join(appSupportDir, 'User', 'globalStorage', 'state.vscdb');
-      if (fs.existsSync(globalStateDb)) {
-        try {
-          const stats = await fs.promises.stat(globalStateDb);
-          if (stats.size <= 10 * 1024 * 1024) {
-            const buffer = await fs.promises.readFile(globalStateDb);
-            const fileContent = 'base64:' + buffer.toString('base64');
-            const relativePath = 'app_support/User/globalStorage/state.vscdb';
-            const hash = crypto.createHash('sha256').update(fileContent).digest('hex');
-
-            allScannedFiles.push({
-              relativePath,
-              content: fileContent,
-              hash,
-              sizeBytes: stats.size,
-              mtimeMs: stats.mtimeMs,
-            });
-          }
-        } catch {}
-      }
-    }
-
     // Incremental Delta Check
     const cachedState = forceFull ? null : this.loadDeltaState(antigravityDataDir);
     let finalFilesToSync: FileItem[] = allScannedFiles;
@@ -236,16 +219,16 @@ export class DeltaEngine {
 
       for (const f of allScannedFiles) {
         const cached = cachedState.filesState[f.relativePath];
-        const isSystemIndex = f.relativePath.startsWith('config/') || f.relativePath.startsWith('app_support/');
+        const isConfig = f.relativePath.startsWith('config/');
 
         // If file is new or modified
         if (!cached || cached.mtimeMs !== f.mtimeMs || cached.sizeBytes !== f.sizeBytes) {
           dirtyFilesSet.add(f.relativePath);
 
-          if (!isSystemIndex) {
+          if (!isConfig) {
             const parts = f.relativePath.split('/');
             let convId = '';
-            if (parts[0] === 'conversations') convId = parts[1].replace(/\.(db|db-wal|db-shm)$/, '');
+            if (parts[0] === 'conversations') convId = parts[1].replace(/\.(db|db-wal)$/, '');
             else if (parts[0] === 'brain' && parts.length >= 2) convId = parts[1];
             else if (parts[0] === 'implicit' && parts.length >= 2) convId = parts[1].replace(/\.pb$/, '');
 
@@ -258,12 +241,12 @@ export class DeltaEngine {
       if (dirtyFilesSet.size > 0 && dirtyFilesSet.size < allScannedFiles.length) {
         isIncremental = true;
         finalFilesToSync = allScannedFiles.filter((f) => {
-          const isSystemIndex = f.relativePath.startsWith('config/') || f.relativePath.startsWith('app_support/');
-          if (isSystemIndex) return true; // Always include updated system indexes
+          const isConfig = f.relativePath.startsWith('config/');
+          if (isConfig) return true; // Always include updated configs
 
           const parts = f.relativePath.split('/');
           let convId = '';
-          if (parts[0] === 'conversations') convId = parts[1].replace(/\.(db|db-wal|db-shm)$/, '');
+          if (parts[0] === 'conversations') convId = parts[1].replace(/\.(db|db-wal)$/, '');
           else if (parts[0] === 'brain' && parts.length >= 2) convId = parts[1];
           else if (parts[0] === 'implicit' && parts.length >= 2) convId = parts[1].replace(/\.pb$/, '');
 
@@ -308,7 +291,7 @@ export class DeltaEngine {
       if (parts[0] === 'brain' && parts.length > 1) {
         convId = parts[1];
       } else if (parts[0] === 'conversations' && parts.length > 1) {
-        convId = parts[1].replace(/\.(db|db-wal|db-shm)$/, '');
+        convId = parts[1].replace(/\.(db|db-wal)$/, '');
       } else if (parts[0] === 'implicit' && parts.length > 1) {
         convId = parts[1].replace(/\.pb$/, '');
       } else {
@@ -413,7 +396,7 @@ export class DeltaEngine {
       // Filter out empty ghost placeholders (< 10 KB and no user title extracted)
       const isGhost = groupSizeBytes < 10240 && title.startsWith('Chat Session');
       if (isGhost && convId !== 'global-config') {
-        continue; // Exclude empty 0.00 MB ghost files from active conversations list
+        continue;
       }
 
       let groupStatus: 'synced' | 'modified' | 'local' = 'local';
@@ -481,10 +464,14 @@ export class DeltaEngine {
       } else if (entry.isFile()) {
         const ext = path.extname(entry.name).toLowerCase();
 
-        if (['.webp', '.png', '.jpg', '.jpeg', '.gif', '.mp4', '.webm', '.zip', '.gz'].includes(ext)) {
+        // Skip binary media assets and ephemeral lock/memory files
+        if (['.webp', '.png', '.jpg', '.jpeg', '.gif', '.mp4', '.webm', '.zip', '.gz', '.db-shm', '.lock'].includes(ext)) {
           continue;
         }
-        if (entry.name.endsWith('.log') && !entry.name.includes('transcript') && !fullPath.includes('shared_proto_db')) {
+        if (entry.name === 'code.lock' || entry.name === 'LOCK') {
+          continue;
+        }
+        if (entry.name.endsWith('.log') && !entry.name.includes('transcript')) {
           continue;
         }
 
@@ -492,7 +479,7 @@ export class DeltaEngine {
           const stats = await fs.promises.stat(fullPath);
           if (stats.size > 50 * 1024 * 1024) continue;
 
-          const isBinary = ['.db', '.db-wal', '.db-shm', '.pb', '.vscdb'].includes(ext) || fullPath.includes('shared_proto_db');
+          const isBinary = this.isBinaryFile(fullPath);
 
           if (textOnly && isBinary) continue;
 
@@ -507,7 +494,7 @@ export class DeltaEngine {
             rawBuffer = Buffer.from(normalizedText, 'utf-8');
           }
 
-          // Per-file Deflate compression to keep payload size 15x smaller (prevents V8 RangeError: Invalid string length)
+          // Per-file Deflate compression keeps payload size compact & prevents V8 string allocation errors
           if (rawBuffer.length > 256) {
             const deflated = zlib.deflateSync(rawBuffer);
             fileContent = 'gz64:' + deflated.toString('base64');
@@ -539,7 +526,6 @@ export class DeltaEngine {
 
   public static async restoreBundle(antigravityDataDir: string, bundle: SyncBundle): Promise<number> {
     const parentDir = path.dirname(antigravityDataDir); // ~/.gemini
-    const appSupportDir = this.getAppSupportDir();
     let restoredCount = 0;
 
     const targetBases = [
@@ -548,23 +534,25 @@ export class DeltaEngine {
       path.join(parentDir, 'antigravity-ide'),
     ];
 
+    // Ensure candidate base directories exist
+    for (const base of targetBases) {
+      try {
+        await fs.promises.mkdir(path.join(base, 'conversations'), { recursive: true });
+        await fs.promises.mkdir(path.join(base, 'brain'), { recursive: true });
+        await fs.promises.mkdir(path.join(base, 'implicit'), { recursive: true });
+      } catch {}
+    }
+
     for (const item of bundle.files) {
       let relPath = item.relativePath;
 
-      if (item.relativePath.startsWith('config/')) {
-        const targetPath = path.join(parentDir, relPath.replace(/\//g, path.sep));
-        try {
-          await fs.promises.mkdir(path.dirname(targetPath), { recursive: true });
-          const buffer = this.getFileContentBuffer(item);
-          await fs.promises.writeFile(targetPath, buffer);
-        } catch {}
-        restoredCount++;
+      // Skip temporary or non-essential files
+      if (relPath.endsWith('.db-shm') || relPath.endsWith('.lock')) {
         continue;
       }
 
-      if (item.relativePath.startsWith('app_support/')) {
-        relPath = item.relativePath.substring(12);
-        const targetPath = path.join(appSupportDir, relPath.replace(/\//g, path.sep));
+      if (item.relativePath.startsWith('config/')) {
+        const targetPath = path.join(parentDir, relPath.replace(/\//g, path.sep));
         try {
           await fs.promises.mkdir(path.dirname(targetPath), { recursive: true });
           const buffer = this.getFileContentBuffer(item);
@@ -583,6 +571,16 @@ export class DeltaEngine {
 
         try {
           await fs.promises.mkdir(targetDir, { recursive: true });
+
+          // When writing a full .db SQLite database:
+          // Clean up any stale .db-shm or old .db-wal files on target machine so SQLite initializes cleanly
+          if (targetPath.endsWith('.db')) {
+            const staleShm = targetPath + '-shm';
+            try {
+              if (fs.existsSync(staleShm)) await fs.promises.unlink(staleShm);
+            } catch {}
+          }
+
           const buffer = this.getFileContentBuffer(item);
           await fs.promises.writeFile(targetPath, buffer);
         } catch {}

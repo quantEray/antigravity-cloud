@@ -1,37 +1,47 @@
 import * as os from 'os';
-import * as path from 'path';
 
 export class PathNormalizer {
-  private static userHome = os.homedir();
-
-  /**
-   * Replaces absolute local paths with universal place-holders.
-   * e.g. /Users/eray/Desktop/Project -> ${USER_HOME}/Desktop/Project
-   * e.g. C:\Users\John\Desktop\Project -> ${USER_HOME}/Desktop/Project
-   */
-  public static normalize(inputPath: string): string {
-    if (!inputPath) return inputPath;
-
-    // Convert Windows backslashes to forward slashes for cross-OS standard
-    let normalized = inputPath.replace(/\\/g, '/');
-    const normalizedHome = this.userHome.replace(/\\/g, '/');
-
-    if (normalized.startsWith(normalizedHome)) {
-      normalized = normalized.replace(normalizedHome, '${USER_HOME}');
-    }
-
-    return normalized;
+  public static getNormalizedHome(): string {
+    return os.homedir().replace(/\\/g, '/');
   }
 
   /**
-   * Denormalizes universal placeholders back into current local OS absolute paths.
-   * e.g. ${USER_HOME}/Desktop/Project -> /Users/eray/Desktop/Project (on Mac)
+   * Replaces all occurrences of local user home in text content with universal ${USER_HOME}.
+   * Handles forward-slash paths, Windows backslash paths, and URL-encoded paths.
    */
-  public static denormalize(inputPath: string): string {
-    if (!inputPath) return inputPath;
+  public static normalize(content: string): string {
+    if (!content) return content;
 
-    // Use forward slashes for user home to ensure JSON strings remain valid on all OSes
-    const normalizedHome = this.userHome.replace(/\\/g, '/');
-    return inputPath.replace(/\${USER_HOME}/g, normalizedHome);
+    const normalizedHome = this.getNormalizedHome();
+    let result = content;
+
+    // 1. Replace forward-slash home paths (e.g. /Users/eray or C:/Users/Asus)
+    result = result.split(normalizedHome).join('${USER_HOME}');
+
+    // 2. Replace Windows backslash home if different (e.g. C:\Users\Asus)
+    const backslashHome = os.homedir().replace(/\//g, '\\');
+    if (backslashHome !== normalizedHome) {
+      result = result.split(backslashHome).join('${USER_HOME}');
+    }
+
+    // 3. Replace URI-encoded forms (e.g. file:///Users/eray or file:///c%3A/Users/...)
+    try {
+      const uriHome = encodeURI(normalizedHome);
+      if (uriHome !== normalizedHome) {
+        result = result.split(uriHome).join('${USER_HOME}');
+      }
+    } catch {}
+
+    return result;
+  }
+
+  /**
+   * Restores universal ${USER_HOME} placeholders with current local OS absolute home directory.
+   */
+  public static denormalize(content: string): string {
+    if (!content) return content;
+
+    const normalizedHome = this.getNormalizedHome();
+    return content.split('${USER_HOME}').join(normalizedHome);
   }
 }
