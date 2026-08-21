@@ -2,7 +2,7 @@
   "name": "antigravity-anywhere",
   "displayName": "Antigravity Anywhere",
   "description": "Real-time, zero-knowledge encrypted cross-device sync & cloud backup engine for Antigravity AI chat transcripts and artifacts.",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "publisher": "quantEray",
   "icon": "resources/antigravity_cloud_logo.png",
   "author": {
