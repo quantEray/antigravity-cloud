@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import * as crypto from 'crypto';
+import * as zlib from 'zlib';
 import { PathNormalizer } from './pathNormalizer';
 
 export interface FileItem {
@@ -47,6 +48,36 @@ export class DeltaEngine {
       return path.join(home, 'Library', 'Application Support', 'Antigravity IDE');
     } else {
       return path.join(home, '.config', 'Antigravity IDE');
+    }
+  }
+
+  public static getFileContentBuffer(file: FileItem): Buffer {
+    try {
+      if (file.content.startsWith('gz64:')) {
+        const compressed = Buffer.from(file.content.substring(5), 'base64');
+        return zlib.inflateSync(compressed);
+      } else if (file.content.startsWith('base64:')) {
+        return Buffer.from(file.content.substring(7), 'base64');
+      } else {
+        const denormalized = PathNormalizer.denormalize(file.content);
+        return Buffer.from(denormalized, 'utf-8');
+      }
+    } catch {
+      return Buffer.from([]);
+    }
+  }
+
+  public static getFileContentText(file: FileItem): string {
+    try {
+      if (file.content.startsWith('gz64:')) {
+        const compressed = Buffer.from(file.content.substring(5), 'base64');
+        return zlib.inflateSync(compressed).toString('utf-8');
+      } else if (file.content.startsWith('base64:')) {
+        return Buffer.from(file.content.substring(7), 'base64').toString('utf-8');
+      }
+      return file.content;
+    } catch {
+      return '';
     }
   }
 
@@ -301,14 +332,15 @@ export class DeltaEngine {
       const lastUpdated = maxMtime > 0 ? new Date(maxMtime).toLocaleDateString() : 'Unknown';
 
       for (const file of files) {
+        const textContent = this.getFileContentText(file);
         if (file.relativePath.endsWith('metadata.json')) {
           try {
-            const parsed = JSON.parse(file.content);
+            const parsed = JSON.parse(textContent);
             if (parsed.Summary) title = parsed.Summary.substring(0, 65);
             else if (parsed.title) title = parsed.title.substring(0, 65);
           } catch {}
         } else if (file.relativePath.endsWith('transcript.jsonl')) {
-          const lines = file.content.split('\n');
+          const lines = textContent.split('\n');
           for (const line of lines) {
             if (!line.trim()) continue;
             try {
@@ -335,7 +367,7 @@ export class DeltaEngine {
         for (const file of files) {
           if (file.relativePath.endsWith('.db')) {
             try {
-              const str = file.content;
+              const str = this.getFileContentText(file);
               const titleMatches = str.match(/[\x20-\x7E]{12,70}/g);
               if (titleMatches && titleMatches.length > 0) {
                 const textChunks = titleMatches.filter((s) => s.length >= 12 && /[a-zA-Z]/.test(s));
@@ -465,12 +497,24 @@ export class DeltaEngine {
           if (textOnly && isBinary) continue;
 
           let fileContent = '';
+          let rawBuffer: Buffer;
+
           if (isBinary) {
-            const buffer = await fs.promises.readFile(fullPath);
-            fileContent = 'base64:' + buffer.toString('base64');
+            rawBuffer = await fs.promises.readFile(fullPath);
           } else {
             const rawContent = await fs.promises.readFile(fullPath, 'utf-8');
-            fileContent = PathNormalizer.normalize(rawContent);
+            const normalizedText = PathNormalizer.normalize(rawContent);
+            rawBuffer = Buffer.from(normalizedText, 'utf-8');
+          }
+
+          // Per-file Deflate compression to keep payload size 15x smaller (prevents V8 RangeError: Invalid string length)
+          if (rawBuffer.length > 256) {
+            const deflated = zlib.deflateSync(rawBuffer);
+            fileContent = 'gz64:' + deflated.toString('base64');
+          } else if (isBinary) {
+            fileContent = 'base64:' + rawBuffer.toString('base64');
+          } else {
+            fileContent = rawBuffer.toString('utf-8');
           }
 
           let relativePath = path.relative(baseDir, fullPath).replace(/\\/g, '/');
@@ -511,11 +555,8 @@ export class DeltaEngine {
         const targetPath = path.join(parentDir, relPath.replace(/\//g, path.sep));
         try {
           await fs.promises.mkdir(path.dirname(targetPath), { recursive: true });
-          if (item.content.startsWith('base64:')) {
-            await fs.promises.writeFile(targetPath, Buffer.from(item.content.substring(7), 'base64'));
-          } else {
-            await fs.promises.writeFile(targetPath, PathNormalizer.denormalize(item.content), 'utf-8');
-          }
+          const buffer = this.getFileContentBuffer(item);
+          await fs.promises.writeFile(targetPath, buffer);
         } catch {}
         restoredCount++;
         continue;
@@ -526,11 +567,8 @@ export class DeltaEngine {
         const targetPath = path.join(appSupportDir, relPath.replace(/\//g, path.sep));
         try {
           await fs.promises.mkdir(path.dirname(targetPath), { recursive: true });
-          if (item.content.startsWith('base64:')) {
-            await fs.promises.writeFile(targetPath, Buffer.from(item.content.substring(7), 'base64'));
-          } else {
-            await fs.promises.writeFile(targetPath, PathNormalizer.denormalize(item.content), 'utf-8');
-          }
+          const buffer = this.getFileContentBuffer(item);
+          await fs.promises.writeFile(targetPath, buffer);
         } catch {}
         restoredCount++;
         continue;
@@ -545,14 +583,8 @@ export class DeltaEngine {
 
         try {
           await fs.promises.mkdir(targetDir, { recursive: true });
-
-          if (item.content.startsWith('base64:')) {
-            const buffer = Buffer.from(item.content.substring(7), 'base64');
-            await fs.promises.writeFile(targetPath, buffer);
-          } else {
-            const denormalizedContent = PathNormalizer.denormalize(item.content);
-            await fs.promises.writeFile(targetPath, denormalizedContent, 'utf-8');
-          }
+          const buffer = this.getFileContentBuffer(item);
+          await fs.promises.writeFile(targetPath, buffer);
         } catch {}
       }
 
