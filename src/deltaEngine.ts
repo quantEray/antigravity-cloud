@@ -543,10 +543,17 @@ export class DeltaEngine {
       } catch {}
     }
 
-    for (const item of bundle.files) {
+    // Sort files so .db files are restored BEFORE .db-wal files
+    const sortedFiles = [...bundle.files].sort((a, b) => {
+      if (a.relativePath.endsWith('.db') && b.relativePath.endsWith('.db-wal')) return -1;
+      if (a.relativePath.endsWith('.db-wal') && b.relativePath.endsWith('.db')) return 1;
+      return 0;
+    });
+
+    for (const item of sortedFiles) {
       let relPath = item.relativePath;
 
-      // Skip temporary or non-essential files
+      // Skip temporary or lock files
       if (relPath.endsWith('.db-shm') || relPath.endsWith('.lock')) {
         continue;
       }
@@ -557,6 +564,8 @@ export class DeltaEngine {
           await fs.promises.mkdir(path.dirname(targetPath), { recursive: true });
           const buffer = this.getFileContentBuffer(item);
           await fs.promises.writeFile(targetPath, buffer);
+          const now = new Date();
+          try { fs.utimesSync(targetPath, now, now); } catch {}
         } catch {}
         restoredCount++;
         continue;
@@ -573,24 +582,32 @@ export class DeltaEngine {
           await fs.promises.mkdir(targetDir, { recursive: true });
 
           // When writing a full .db SQLite database:
-          // Clean up any stale .db-shm or old .db-wal files on target machine so SQLite initializes cleanly
+          // Clean up any stale .db-shm AND .db-wal files on target machine so SQLite initializes cleanly
           if (targetPath.endsWith('.db')) {
             const staleShm = targetPath + '-shm';
+            const staleWal = targetPath + '-wal';
             try {
               if (fs.existsSync(staleShm)) await fs.promises.unlink(staleShm);
+              if (fs.existsSync(staleWal)) await fs.promises.unlink(staleWal);
             } catch {}
           }
 
           const buffer = this.getFileContentBuffer(item);
           await fs.promises.writeFile(targetPath, buffer);
+
+          // Touch file timestamp so Antigravity IDE watcher detects file update
+          const now = new Date();
+          try { fs.utimesSync(targetPath, now, now); } catch {}
         } catch {}
       }
 
       restoredCount++;
     }
 
-    // Save restored delta state cache so all files show up as Synced
-    await this.saveDeltaState(antigravityDataDir, bundle.files);
+    // Save restored delta state cache across all candidate directories so all files show up as Synced
+    for (const baseDir of targetBases) {
+      await this.saveDeltaState(baseDir, bundle.files);
+    }
 
     return restoredCount;
   }

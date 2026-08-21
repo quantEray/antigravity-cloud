@@ -1,20 +1,16 @@
 # Change Log - Antigravity Cloud
 
-All notable changes to the "Antigravity Anywhere & Cloud Hub" extension are documented here.
+All notable changes to the "Antigravity Anywhere & Cloud Hub" extension will be documented in this file.
 
-## [0.3.0] - 2026-08-21
+## [0.3.1] - 2026-08-21
 
-### 🚀 Critical Fixes: Infinite Chat Loading Spinner & Message Restoration
-- **SQLite WAL & SHM Cleanup on Restore:** Fixed a critical bug where restoring conversations on a secondary machine left stale `.db-shm` and `.db-wal` locks, preventing SQLite from opening the conversation messages. Stale SHM files are now cleanly purged during restore.
-- **Deep JSON/Text Path Denormalization:** Fixed path normalizer to globally denormalize embedded workspace paths inside `gz64:` compressed message envelopes, `transcript.jsonl`, and artifacts so chats open instantly across different machines and operating systems (Mac <-> Windows <-> Linux).
-- **Safety Database Isolation:** Removed corruptive overwrites of VS Code system-level `state.vscdb` and LevelDB databases during restore.
+### Fixed
+- 🐛 **SQLite WAL Stale Lock Cleanup:** Fixed issue where restored conversations did not show up in Antigravity chat history panel on target machines. `restoreBundle` now unlinks stale `.db-wal` and `.db-shm` locks prior to restoring SQLite `.db` databases.
+- 🕒 **File Timestamp Touch:** Touches restored conversation files with current system timestamp (`mtime`) so Antigravity IDE file system watchers immediately detect database updates.
+- 🔄 **Order Preservation:** Restores main `.db` database files before `.db-wal` write-ahead logs to prevent SQLite WAL mode page sequence mismatches.
 
-## [0.2.1] - 2026-08-13
+## [0.2.0] - 2026-08-13
 
-- Added built-in GitHub Release Auto-Updater engine for seamless 1-click updates.
-- Added interactive "⭐ Star Project" and "💬 Feedback" community widgets.
-- Enhanced multi-directory restore mirroring across `~/.gemini/antigravity` and `~/.gemini/antigravity-ide`.
-
-## [0.1.0] - 2026-08-12
-
-- Initial release of Antigravity Anywhere & Cloud Sync Hub with E2E PBKDF2 + AES-256-GCM encryption, Google OAuth 2.0 PKCE, and interactive Webview Dashboard.
+- Added GitHub Star & Community Feedback Widgets.
+- Added Multi-Directory Restore Mirroring (`~/.gemini/antigravity-ide` and `~/.gemini/antigravity`).
+- Added automatic duplicate backup file cleanup in Google Drive.
