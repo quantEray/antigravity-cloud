@@ -97,7 +97,10 @@ export class DashboardWebview {
       context.subscriptions
     );
 
-    this.updateWebviewHtml(panel);
+    // Render content asynchronously so the Webview window opens in 0ms instantly!
+    setImmediate(() => {
+      this.updateWebviewHtml(panel);
+    });
   }
 
   public static refreshCurrentPanel(): void {
@@ -851,6 +854,9 @@ export class DashboardWebview {
     
     <div style="display: flex; align-items: center; gap: 16px;">
       <div style="display: flex; gap: 8px;">
+        <button class="btn btn-secondary" onclick="sendMessage('setEncryptionPassword')" style="padding: 8px 14px; font-size: 12px; border-color: rgba(59, 130, 246, 0.4); color: #60a5fa;" title="Set or change backup encryption password">
+          🔑 Set Password
+        </button>
         <button class="btn btn-secondary" onclick="sendMessage('openGithubStar')" style="padding: 8px 14px; font-size: 12px; border-color: rgba(251, 191, 36, 0.4); color: #fde047;" title="Star project on GitHub">
           ⭐ Star Project
         </button>

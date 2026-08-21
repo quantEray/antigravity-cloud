@@ -465,7 +465,8 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider {
     <button class="secondary" onclick="send('restore')">📥 Restore from Google Drive</button>
     <button class="secondary" onclick="send('refresh')">🔄 Refresh UI</button>
     <div style="display: flex; gap: 6px; width: 100%;">
-      <button class="secondary" onclick="send('openGithubStar')" style="flex: 1; font-size: 11px; padding: 6px;" title="Star on GitHub">⭐ Star Project</button>
+      <button class="secondary" onclick="send('setEncryptionPassword')" style="flex: 1; font-size: 11px; padding: 6px;" title="Set Encryption Password">🔑 Password</button>
+      <button class="secondary" onclick="send('openGithubStar')" style="flex: 1; font-size: 11px; padding: 6px;" title="Star on GitHub">⭐ Star</button>
       <button class="secondary" onclick="send('openGithubIssues')" style="flex: 1; font-size: 11px; padding: 6px;" title="Report Feedback">💬 Feedback</button>
     </div>
     <button class="danger" onclick="send('deleteAll')">🗑️ Delete All Files</button>

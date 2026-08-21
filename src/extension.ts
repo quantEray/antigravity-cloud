@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { getConfig, setDriveFileId, clearGoogleAuth, setAutoSync, setEncryptionPassword } from './config';
 import { DeltaEngine } from './deltaEngine';
-import { encryptPayload, decryptPayload } from './crypto';
+import { encryptPayload, decryptPayload, encryptPayloadAsync, decryptPayloadAsync } from './crypto';
 import { GoogleDriveStorage } from './storage/googleDriveStorage';
 import { GoogleAuthManager } from './googleAuth';
 import { SafetyBackup } from './safetyBackup';
@@ -395,7 +395,11 @@ async function performSync(interactive: boolean = false): Promise<void> {
       if (activeSyncAbortController?.signal.aborted) throw new Error('Operation canceled by user.');
 
       broadcastProgress(true, 55, '🔒 Compressing & Encrypting payload (AES-256-GCM)...', '🚀 Syncing to Google Drive...');
-      const encryptedPayload = encryptPayload(payloadJson, config.encryptionPassword);
+      const encryptedPayload = await encryptPayloadAsync(
+        payloadJson,
+        config.encryptionPassword,
+        activeSyncAbortController?.signal
+      );
 
       if (activeSyncAbortController?.signal.aborted) throw new Error('Operation canceled by user.');
 
@@ -545,7 +549,7 @@ async function performRestore(): Promise<void> {
 
         // Try decrypting with stored password first
         try {
-          decryptedJson = decryptPayload(encryptedPayload, currentPassword);
+          decryptedJson = await decryptPayloadAsync(encryptedPayload, currentPassword);
         } catch {
           decryptedJson = null;
         }
@@ -569,7 +573,7 @@ async function performRestore(): Promise<void> {
             }
 
             try {
-              decryptedJson = decryptPayload(encryptedPayload, inputPassword.trim());
+              decryptedJson = await decryptPayloadAsync(encryptedPayload, inputPassword.trim());
               // Successfully decrypted! Save password globally so user doesn't have to enter it again.
               await setEncryptionPassword(inputPassword.trim());
               vscode.window.showInformationMessage('🔑 Antigravity Cloud: Valid encryption password saved!');

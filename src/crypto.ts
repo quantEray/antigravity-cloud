@@ -54,6 +54,104 @@ export function encryptPayload(plaintext: string, password?: string): string {
   return JSON.stringify(payload);
 }
 
+export async function encryptPayloadAsync(
+  plaintext: string,
+  password?: string,
+  abortSignal?: AbortSignal
+): Promise<string> {
+  if (abortSignal?.aborted) throw new Error('Operation canceled by user.');
+
+  // Non-blocking Gzip compression off main UI thread
+  const compressedBuffer = await new Promise<Buffer>((resolve, reject) => {
+    zlib.gzip(Buffer.from(plaintext, 'utf-8'), (err, res) => (err ? reject(err) : resolve(res)));
+  });
+
+  if (abortSignal?.aborted) throw new Error('Operation canceled by user.');
+
+  if (!password) {
+    return JSON.stringify({
+      version: 1,
+      compressed: true,
+      unencrypted: true,
+      data: compressedBuffer.toString('base64'),
+    });
+  }
+
+  const salt = crypto.randomBytes(SALT_LENGTH);
+  const iv = crypto.randomBytes(IV_LENGTH);
+
+  // Non-blocking PBKDF2 calculation off main thread
+  const key = await new Promise<Buffer>((resolve, reject) => {
+    crypto.pbkdf2(password, salt, PBKDF2_ITERATIONS, KEY_LENGTH, 'sha256', (err, derivedKey) => {
+      if (err) reject(err);
+      else resolve(derivedKey);
+    });
+  });
+
+  if (abortSignal?.aborted) throw new Error('Operation canceled by user.');
+
+  const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
+  let encrypted = cipher.update(compressedBuffer.toString('base64'), 'utf-8', 'hex');
+  encrypted += cipher.final('hex');
+  const tag = cipher.getAuthTag();
+
+  return JSON.stringify({
+    version: 1,
+    compressed: true,
+    salt: salt.toString('hex'),
+    iv: iv.toString('hex'),
+    tag: tag.toString('hex'),
+    data: encrypted,
+  });
+}
+
+export async function decryptPayloadAsync(
+  rawPayload: string,
+  password?: string
+): Promise<string> {
+  const parsed = JSON.parse(rawPayload);
+
+  let decryptedData = '';
+
+  if (parsed.unencrypted) {
+    decryptedData = parsed.data;
+  } else {
+    if (!password) {
+      throw new Error('Encryption password is required to decrypt cloud backup.');
+    }
+
+    const payload = parsed as EncryptedPayload;
+    const salt = Buffer.from(payload.salt, 'hex');
+    const iv = Buffer.from(payload.iv, 'hex');
+    const tag = Buffer.from(payload.tag, 'hex');
+    const encryptedText = payload.data;
+
+    // Non-blocking PBKDF2 calculation
+    const key = await new Promise<Buffer>((resolve, reject) => {
+      crypto.pbkdf2(password, salt, PBKDF2_ITERATIONS, KEY_LENGTH, 'sha256', (err, derivedKey) => {
+        if (err) reject(err);
+        else resolve(derivedKey);
+      });
+    });
+
+    const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
+    decipher.setAuthTag(tag);
+
+    let decrypted = decipher.update(encryptedText, 'hex', 'utf-8');
+    decrypted += decipher.final('utf-8');
+    decryptedData = decrypted;
+  }
+
+  if (parsed.compressed) {
+    const decompressed = await new Promise<Buffer>((resolve, reject) => {
+      zlib.gunzip(Buffer.from(decryptedData, 'base64'), (err, res) => (err ? reject(err) : resolve(res)));
+    });
+    return decompressed.toString('utf-8');
+  }
+
+  return Buffer.from(decryptedData, 'base64').toString('utf-8');
+}
+
 export function decryptPayload(rawPayload: string, password?: string): string {
   const parsed = JSON.parse(rawPayload);
 
