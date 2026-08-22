@@ -2,6 +2,11 @@
 
 All notable changes to the "Antigravity Anywhere & Cloud Hub" extension will be documented in this file.
 
+## [0.3.2] - 2026-08-22
+
+### Fixed
+- 📦 **100% Full Backup Payload Integrity:** Fixed critical issue where incremental sync filtered out unchanged files, causing cloud backup files on Google Drive to contain only partial chats. Cloud backups now always preserve 100% of all conversation transcripts and SQLite databases across all devices.
+
 ## [0.3.1] - 2026-08-21
 
 ### Fixed

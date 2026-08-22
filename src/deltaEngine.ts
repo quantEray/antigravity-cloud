@@ -208,57 +208,10 @@ export class DeltaEngine {
       await this.scanDirRecursive(configDir, parentDir, allScannedFiles, false);
     }
 
-    // Incremental Delta Check
-    const cachedState = forceFull ? null : this.loadDeltaState(antigravityDataDir);
-    let finalFilesToSync: FileItem[] = allScannedFiles;
-    let isIncremental = false;
-
-    if (cachedState && cachedState.filesState) {
-      const dirtyConvIds = new Set<string>();
-      const dirtyFilesSet = new Set<string>();
-
-      for (const f of allScannedFiles) {
-        const cached = cachedState.filesState[f.relativePath];
-        const isConfig = f.relativePath.startsWith('config/');
-
-        // If file is new or modified
-        if (!cached || cached.mtimeMs !== f.mtimeMs || cached.sizeBytes !== f.sizeBytes) {
-          dirtyFilesSet.add(f.relativePath);
-
-          if (!isConfig) {
-            const parts = f.relativePath.split('/');
-            let convId = '';
-            if (parts[0] === 'conversations') convId = parts[1].replace(/\.(db|db-wal)$/, '');
-            else if (parts[0] === 'brain' && parts.length >= 2) convId = parts[1];
-            else if (parts[0] === 'implicit' && parts.length >= 2) convId = parts[1].replace(/\.pb$/, '');
-
-            if (convId) dirtyConvIds.add(convId);
-          }
-        }
-      }
-
-      // If at least some files changed (but not everything), perform fast delta bundle
-      if (dirtyFilesSet.size > 0 && dirtyFilesSet.size < allScannedFiles.length) {
-        isIncremental = true;
-        finalFilesToSync = allScannedFiles.filter((f) => {
-          const isConfig = f.relativePath.startsWith('config/');
-          if (isConfig) return true; // Always include updated configs
-
-          const parts = f.relativePath.split('/');
-          let convId = '';
-          if (parts[0] === 'conversations') convId = parts[1].replace(/\.(db|db-wal)$/, '');
-          else if (parts[0] === 'brain' && parts.length >= 2) convId = parts[1];
-          else if (parts[0] === 'implicit' && parts.length >= 2) convId = parts[1].replace(/\.pb$/, '');
-
-          // Include file if its conversation is marked dirty/modified or file itself is dirty
-          return dirtyConvIds.has(convId) || dirtyFilesSet.has(f.relativePath);
-        });
-      }
-    }
-
-    finalFilesToSync.sort((a, b) => b.mtimeMs - a.mtimeMs);
-    const bundle = this.buildBundle(finalFilesToSync);
-    bundle.isIncremental = isIncremental;
+    // Always package 100% complete full backup payload for Google Drive cloud storage
+    // so any device performing Restore receives ALL conversations and chat history!
+    const bundle = this.buildBundle(allScannedFiles);
+    bundle.isIncremental = false;
     return bundle;
   }
 
